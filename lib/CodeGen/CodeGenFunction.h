@@ -279,8 +279,6 @@ public:
   /// finally block or filter expression.
   bool IsOutlinedSEHHelper;
 
-  bool IsCleanupPadScope = false;
-
   const CodeGen::CGBlockInfo *BlockInfo;
   llvm::Value *BlockPointer;
 
@@ -373,9 +371,6 @@ public:
 
   /// Returns true inside SEH __try blocks.
   bool isSEHTryScope() const { return !SEHTryEpilogueStack.empty(); }
-
-  /// Returns true while emitting a cleanuppad.
-  bool isCleanupPadScope() const { return IsCleanupPadScope; }
 
   /// pushFullExprCleanup - Push a cleanup to be run at the end of the
   /// current full-expression.  Safe against the possibility that
