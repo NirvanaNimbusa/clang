@@ -15,6 +15,7 @@
 #include "CGCall.h"
 #include "ABIInfo.h"
 #include "CGCXXABI.h"
+#include "CGCleanup.h"
 #include "CodeGenFunction.h"
 #include "CodeGenModule.h"
 #include "TargetInfo.h"
@@ -3427,11 +3428,22 @@ RValue CodeGenFunction::EmitCall(const CGFunctionInfo &CallInfo,
   llvm::AttributeSet Attrs = llvm::AttributeSet::get(getLLVMContext(),
                                                      AttributeList);
 
-  llvm::BasicBlock *InvokeDest = nullptr;
-  if (!Attrs.hasAttribute(llvm::AttributeSet::FunctionIndex,
-                          llvm::Attribute::NoUnwind) ||
-      currentFunctionUsesSEHTry())
-    InvokeDest = getInvokeDest();
+  bool CannotThrow;
+  if (currentFunctionUsesSEHTry()) {
+    // SEH cares about asynchronous exceptions, everything can "throw."
+    CannotThrow = false;
+  } else if (isCleanupPadScope() &&
+             &EHPersonality::get(*this) ==
+                 &EHPersonality::MSVC_CxxFrameHandler3) {
+    // The MSVC++ personality will implicitly terminate the program if an
+    // exception is thrown.  An unwind edge cannot be reached.
+    CannotThrow = true;
+  } else {
+    // Otherwise, nowunind callsites will never throw.
+    CannotThrow = Attrs.hasAttribute(llvm::AttributeSet::FunctionIndex,
+                                     llvm::Attribute::NoUnwind);
+  }
+  llvm::BasicBlock *InvokeDest = CannotThrow ? nullptr : getInvokeDest();
 
   llvm::CallSite CS;
   if (!InvokeDest) {

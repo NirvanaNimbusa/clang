@@ -902,11 +902,13 @@ void CodeGenFunction::PopCleanupBlock(bool FallthroughIsBranchThrough) {
     // throwing cleanups. For funclet EH personalities, the cleanupendpad models
     // program termination when cleanups throw.
     bool PushedTerminate = false;
+    SaveAndRestore<bool> RestoreIsCleanupPadScope(IsCleanupPadScope);
     llvm::CleanupPadInst *CPI = nullptr;
     if (!EHPersonality::get(*this).usesFuncletPads()) {
       EHStack.pushTerminate();
       PushedTerminate = true;
     } else {
+      IsCleanupPadScope = true;
       // FIXME: wrong outer scope.
       llvm::Value *OuterScope =
           llvm::ConstantTokenNone::get(CGM.getLLVMContext());

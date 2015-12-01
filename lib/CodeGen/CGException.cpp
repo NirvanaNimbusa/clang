@@ -597,7 +597,7 @@ CodeGenFunction::getEHDispatchBlock(EHScopeStack::stable_iterator si) {
 
       // Otherwise, make a dispatch block.
       } else {
-        dispatchBlock = createBasicBlock("catch");
+        dispatchBlock = createBasicBlock("catch.dispatch");
       }
       break;
     }
@@ -992,7 +992,6 @@ static void emitCatchDispatchBlock(CodeGenFunction &CGF,
     // Otherwise we need to emit and continue at that block.
     CGF.EmitBlock(nextBlock);
   }
-  return;
 }
 
 void CodeGenFunction::popCatchScope() {
