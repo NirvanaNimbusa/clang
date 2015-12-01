@@ -878,9 +878,9 @@ static void emitCatchPadBlock(CodeGenFunction &CGF, EHCatchScope &CatchScope) {
   CGBuilderTy::InsertPoint SavedIP = CGF.Builder.saveIP();
   CGF.EmitBlockAfterUses(DispatchBlock);
 
-  // FIXME: wrong outer scope.
-  llvm::Value *OuterScope =
-      llvm::ConstantTokenNone::get(CGF.CGM.getLLVMContext());
+  llvm::Value *OuterScope = CGF.CurrentFuncletPad;
+  if (!OuterScope)
+    OuterScope = llvm::ConstantTokenNone::get(CGF.getLLVMContext());
   llvm::BasicBlock *UnwindBB =
       CGF.getEHDispatchBlock(CatchScope.getEnclosingEHScope());
 
@@ -1056,6 +1056,8 @@ void CodeGenFunction::ExitCXXTryStmt(const CXXTryStmt &S, bool IsFnTryBlock) {
     RunCleanupsScope CatchScope(*this);
 
     // Initialize the catch variable and set up the cleanups.
+    SaveAndRestore<llvm::Instruction *> RestoreCurrentFuncletPad(
+        CurrentFuncletPad);
     CGM.getCXXABI().emitBeginCatch(*this, C);
 
     // Emit the PGO counter increment.
@@ -1327,9 +1329,9 @@ llvm::BasicBlock *CodeGenFunction::getTerminateHandler() {
   TerminateHandler = createBasicBlock("terminate.handler");
   Builder.SetInsertPoint(TerminateHandler);
   if (EHPersonality::get(*this).usesFuncletPads()) {
-    // FIXME: wrong outer scope.
-    llvm::Value *OuterScope =
-        llvm::ConstantTokenNone::get(CGM.getLLVMContext());
+    llvm::Value *OuterScope = CurrentFuncletPad;
+    if (!OuterScope)
+      OuterScope = llvm::ConstantTokenNone::get(CGM.getLLVMContext());
     Builder.CreateTerminatePad(OuterScope, /*UnwindBB=*/nullptr,
                                {CGM.getTerminateFn()});
   } else {

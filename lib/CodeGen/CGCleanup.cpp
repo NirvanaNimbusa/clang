@@ -902,17 +902,17 @@ void CodeGenFunction::PopCleanupBlock(bool FallthroughIsBranchThrough) {
     // throwing cleanups. For funclet EH personalities, the cleanupendpad models
     // program termination when cleanups throw.
     bool PushedTerminate = false;
-    SaveAndRestore<bool> RestoreIsCleanupPadScope(IsCleanupPadScope);
+    SaveAndRestore<llvm::Instruction *> RestoreCurrentFuncletPad(
+        CurrentFuncletPad);
     llvm::CleanupPadInst *CPI = nullptr;
     if (!EHPersonality::get(*this).usesFuncletPads()) {
       EHStack.pushTerminate();
       PushedTerminate = true;
     } else {
-      IsCleanupPadScope = true;
-      // FIXME: wrong outer scope.
-      llvm::Value *OuterScope =
-          llvm::ConstantTokenNone::get(CGM.getLLVMContext());
-      CPI = Builder.CreateCleanupPad(OuterScope);
+      llvm::Value *OuterScope = CurrentFuncletPad;
+      if (!OuterScope)
+        OuterScope = llvm::ConstantTokenNone::get(CGM.getLLVMContext());
+      CurrentFuncletPad = CPI = Builder.CreateCleanupPad(OuterScope);
     }
 
     // We only actually emit the cleanup code if the cleanup is either

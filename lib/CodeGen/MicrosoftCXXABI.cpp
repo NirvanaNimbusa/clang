@@ -899,6 +899,7 @@ void MicrosoftCXXABI::emitBeginCatch(CodeGenFunction &CGF,
       CGF.Builder.GetInsertBlock()->getSinglePredecessor();
   llvm::CatchPadInst *CPI =
       cast<llvm::CatchPadInst>(CatchPadBB->getFirstNonPHI());
+  CGF.CurrentFuncletPad = CPI;
 
   // If this is a catch-all or the catch parameter is unnamed, we don't need to
   // emit an alloca to the object.

@@ -14,17 +14,17 @@ void test_catch() {
 
 // CHECK-LABEL: define void @"\01?test_catch@@YAXXZ"(
 // CHECK:   invoke i32 @"\01?f@@YAHH@Z"(i32 1)
-// CHECK:         to label %[[NORMAL:.*]] unwind label %[[CATCH_INT:.*]]
+// CHECK:         to label %[[NORMAL:.*]] unwind label %[[CATCHSWITCH:.*]]
+
+// CHECK: [[CATCHSWITCH]]
+// CHECK:   %[[CATCHSWITCHPAD:.*]] = catchswitch none, unwind to caller [label %[[CATCH_INT:.*]], label %[[CATCH_DOUBLE:.*]]]
 
 // CHECK: [[CATCH_INT]]
-// CHECK:   %[[CATCHPAD_INT:.*]] = catchpad [%rtti.TypeDescriptor2* @"\01??_R0H@8", i32 0, i8* null]
-// CHECK:         to label %[[CATCH_INT_HANDLER:.*]] unwind label %[[CATCH_DOUBLE:.*]]
+// CHECK:   %[[CATCHPAD_INT:.*]] = catchpad %[[CATCHSWITCHPAD]] [%rtti.TypeDescriptor2* @"\01??_R0H@8", i32 0, i8* null]
+// CHECK:   br label %[[CATCH_INT_HANDLER:.*]]
 
 // CHECK: [[CATCH_INT_HANDLER]]
-// CHECK:   invoke i32 @"\01?f@@YAHH@Z"(i32 2)
-// CHECK:           to label %[[CATCH_INT_DONE:.*]] unwind label %[[CATCHENDPAD:.*]]
-
-// CHECK: [[CATCH_INT_DONE]]
+// CHECK:   call i32 @"\01?f@@YAHH@Z"(i32 2)
 // CHECK:   catchret %[[CATCHPAD_INT]] to label %[[LEAVE_INT_CATCH:.*]]
 
 // CHECK: [[LEAVE_INT_CATCH]]
@@ -34,21 +34,15 @@ void test_catch() {
 // CHECK:   ret void
 
 // CHECK: [[CATCH_DOUBLE]]
-// CHECK:   %[[CATCHPAD_DOUBLE:.*]] = catchpad [%rtti.TypeDescriptor2* @"\01??_R0N@8", i32 0, i8* null]
-// CHECK:           to label %[[CATCH_DOUBLE_HANDLER:.*]] unwind label %[[CATCHENDPAD]]
+// CHECK:   %[[CATCHPAD_DOUBLE:.*]] = catchpad %[[CATCHSWITCHPAD]] [%rtti.TypeDescriptor2* @"\01??_R0N@8", i32 0, i8* null]
+// CHECK:   br label %[[CATCH_DOUBLE_HANDLER:.*]]
 
 // CHECK: [[CATCH_DOUBLE_HANDLER]]
-// CHECK:   invoke i32 @"\01?f@@YAHH@Z"(i32 3)
-// CHECK:           to label %[[CATCH_DOUBLE_DONE:.*]] unwind label %[[CATCHENDPAD]]
-
-// CHECK: [[CATCH_DOUBLE_DONE]]
+// CHECK:   call i32 @"\01?f@@YAHH@Z"(i32 3)
 // CHECK:   catchret %[[CATCHPAD_DOUBLE]] to label %[[LEAVE_DOUBLE_CATCH:.*]]
 
 // CHECK: [[LEAVE_DOUBLE_CATCH]]
 // CHECK:   br label %[[LEAVE_FUNC]]
-
-// CHECK: [[CATCHENDPAD]]
-// CHECK:   catchendpad unwind to caller
 
 // CHECK: [[NORMAL]]
 // CHECK:   br label %[[LEAVE_FUNC]]
@@ -71,7 +65,7 @@ void test_cleanup() {
 // CHECK:   ret void
 
 // CHECK: [[CLEANUP]]
-// CHECK:   %[[CLEANUPPAD:.*]] = cleanuppad []
+// CHECK:   %[[CLEANUPPAD:.*]] = cleanuppad none []
 // CHECK:   call x86_thiscallcc void @"\01??_DCleanup@@QAE@XZ"(
 // CHECK:   cleanupret %[[CLEANUPPAD]] unwind to caller
 
@@ -84,5 +78,5 @@ void test_cleanup() {
 // CHECK:   ret void
 
 // CHECK: [[TERMINATE]]
-// CHECK:   terminatepad [void ()* @"\01?terminate@@YAXXZ"] unwind to caller
+// CHECK:   terminatepad none [void ()* @"\01?terminate@@YAXXZ"] unwind to caller
 
